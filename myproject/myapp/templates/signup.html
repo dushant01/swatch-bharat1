@@ -1,0 +1,45 @@
+{% load static %}
+<!doctype html>
+<html>
+	<head>
+		<title> SIGNUP </title>
+<meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<link rel="stylesheet" type="text/css" href="{% static "css/upstyle.css" %}">
+
+<!-- Bootstrap -->
+    
+	<link href="{% static "css/bootstrap.css" %}" rel="stylesheet">
+    </head>			
+    <body>
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="{% static "js/jquery-3.2.1.js" %}"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+   
+ <script src="{% static "js/bootstrap.js" %}"></script>
+<form method="post">
+{% csrf_token %}	    
+  <div class="container">
+<label><b>Name:</b></label>
+    <input id="name" type="text" placeholder="Enter name" name="name"  value="{{ name }}" required>
+
+	<label><b>UserName:</b></label>
+    <input id="username" type="text" placeholder="Enter username" name="username"  value="{{ username }}" required>
+    <label><b>Email</b></label>
+    <input id="email" type="text" placeholder="Enter Email" name="email"  value="{{ email }}" required>
+
+    <label><b>Password</b></label>
+    <input type="password" placeholder="Enter Password" name="password" value="{{ password }}" required>
+
+    <input type="checkbox" checked="checked"> Remember me
+    <p>By creating an account you agree to our <a href="#">Terms & Privacy</a>.</p>
+
+    <div class="clearfix">
+      <button type="submit" class="class="btn btn-success"">Sign Up</button>
+    </div>
+  </div>
+</form>
+</body>
+</html>

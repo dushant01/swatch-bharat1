@@ -1,0 +1,40 @@
+{% load static %}
+<!doctype html>
+<html>
+	<head>
+		<title> LOGIN </title>
+<meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link rel="stylesheet" type="text/css" href="{% static "css/upstyle.css" %}">
+
+<!-- Bootstrap -->
+    
+	<link href="{% static "css/bootstrap.css" %}" rel="stylesheet">
+    </head>			
+    <body>
+<!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="{% static "js/jquery-3.2.1.js" %}"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+   
+ <script src="{% static "js/bootstrap.js" %}"></script>
+<form method="post">
+{% csrf_token %}	    
+  <div class="container">
+    <label><b>Username</b></label>
+    <input id="username" type="text" placeholder="Enter username" name="username"  value="{{ username }}" required>
+
+    <label><b>Password</b></label>
+    <input type="password" placeholder="Enter Password" name="psw" value="{{ password }}" required>
+
+    <input type="checkbox" checked="checked"> Remember me
+    <p>By creating an account you agree to our <a href="#">Terms & Privacy</a>.</p>
+
+    <div class="clearfix">
+      <button type="submit" value="login">LOGIN</button>
+    </div>
+  </div>
+</form>
+</body>
+</html>
