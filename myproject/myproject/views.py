@@ -17,7 +17,10 @@ from django.http import HttpResponseRedirect
 from django.contrib.auth import logout
 import smtplib
 from constants import constant
-
+import ctypes
+from clarifai.rest import ClarifaiApp
+from clarifai import rest
+from clarifai.rest import Image as ClImage
 
 from imgurpython import ImgurClient
 
@@ -61,6 +64,7 @@ def signup_view(request) :
             server.sendmail('dushantk1@gmail.com',email,message)
             #   WOW!!!SUCCESSFULLY SEND EMAIL TO THE USER WHO HAS SIGNUP.USER CAN CHECK INBOX OR SPAM
             # THIS IS ACCURATLY WORKING
+            return redirect('/login/')
         return render(request,'success.html',{'form': form})
 
 #-------------------------------------create a new function for login  user---------------------------------------------------------
@@ -86,7 +90,7 @@ def login_view(request):
                     token = SessionToken(user = user)
                     token.create_token()
                     token.save()
-                    response = redirect('feed/')
+                    response = redirect('/feed/')
                     response.set_cookie(key='session_token', value=token.session_token)
                     return response
                     #successfully Login
@@ -131,7 +135,7 @@ def post_view(request):
 
         else:
             form = PostForm()
-        return render(request, 'post.html', {'form' : form})
+        return render(request, 'posts.html', {'form' : form})
     else:
         return redirect('/login/')
 
@@ -150,7 +154,7 @@ def feed_view(request):
                 post.has_liked = True
 
 
-        return render(request, 'feed.html', {'posts': posts})
+        return render(request, 'feeds.html', {'posts': posts})
     else:
 
         return redirect('/login/')
@@ -194,6 +198,33 @@ def comment_view(request):
             return redirect('/feed/')
     else:
         return redirect('/login')
+
+def add_category(post):
+    app = ClarifaiApp(api_key='{cf613fcdc74449948a0a7cfa7fb363bf}')
+
+    # Logo model
+
+    model = app.models.get('general-v1.3')
+    response = model.predict_by_url(url=post.image_url)
+
+    if response["status"]["code"] == 10000:
+        if response["outputs"]:
+            if response["outputs"][0]["data"]:
+                if response["outputs"][0]["data"]["concepts"]:
+                    for index in range(0, len(response["outputs"][0]["data"]["concepts"])):
+                        category = CategoryModel(post=post,
+                                                 category_text=response["outputs"][0]["data"]["concepts"][index][
+                                                     "name"])
+                        category.save()
+                else:
+                    print "No concepts list error."
+            else:
+                print "No data list error."
+        else:
+            print "No output lists error."
+    else:
+	print "Response code error."
+
 
 
 

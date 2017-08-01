@@ -1,54 +1,92 @@
 {% load staticfiles %}
 
+
 <!DOCTYPE html>
-<html lang="en">
+
+<html lang="en" style="padding:60px">
 <head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+ 
+   <meta charset="UTF-8">
+
+  
+ <title>Title</title>
 </head>
-<body>
+
+<body background="{% static "images/feed1.jpg" %}">
+
     <form method="post" action="/post/">
+
         {% csrf_token %}
-        <input type="submit" class="btn-default btn" value="Create Post">
+        
+<input style="color: black; margin-left:300px; background-color:darkgrey;" Text-align:center; margin-left:300" type="submit" class="btn-default btn" value="Create Post">
+
     </form>
-    <h1 align="right"><a href="/login/">Logout</a></h1>
+  
+  <h1 align="right"><a href="/login/">Logout</a></h1>
+
 
     {% for post in posts %}
 
 
-        <h3> Posted by: {{ post.user.username }} </h3>
-        <p>[{{ post.created_on }}]</p>
-        <img style="display:inline-block; width:350px; height:300px;"
+   
+     <h3 style="margin-left:300px"> Posted by: {{ post.user.username }} </h3>
+ 
+       <p style="margin-left:52px; font-size: x-large">[{{ post.created_on }}]</p>
+      
+  <img style="margin-left=30px ;display:inline-block; width:554px; height:345px;"
              src="{{ post.image_url }}" /><br>
-        <span  style="display:inline-block;">{{ post.caption }}</span><br/><br/>
-        <div style="display:inline-block">
+ 
+       <span  style="margin-left:300px; display:inline-block;">{{ post.caption }}</span><br/><br/>
+
+ 
+       <div style="display:inline-block">
             {{ post.like_count }} likes this
         </div>
-        <div style="display:inline-block">
-            <form method="POST" action="/like/">
-              {% csrf_token %}
-              <input type="hidden" name="post" value="{{ post.id }}" />
-                {% if post.has_liked %}
-                <input type="submit" class="btn btn-default" value="Unlike">
-                {% else %}
-                <input type="submit" class="btn btn-default" value="Like">
-                {% endif %}
-            </form>
+      
+  <div style="display:inline-block">
+           
+ <form method="POST" action="/like/">
+     
+         {% csrf_token %}
+             
+ <input  type="hidden" name="post" value="{{ post.id }}" />
+ 
+               {% if post.has_liked %}
+                
+<input style="margin-left:300px; color: black; background-color:darkgrey;" type="submit" class="btn btn-default" value="Unlike">
+        
+        {% else %}
+  
+              <input style="margin-left:300px;color: black; background-color:darkgrey;" type="submit" class="btn btn-default" value="Like">
+     
+           {% endif %}
+          
+  </form>
         </div>
 
-        <div>
-            <form method="POST" action="/comment/">
-                {% csrf_token %}
-                <input type="hidden" name="post" value="{{ post.id }}" />
-                <input type="text" name="comment_text" id="comment_text" placeholder="Make a comment.." value="{{ comment_text }}">
+       
+ <div>
+            
+<form method="POST" action="/comment/">
+   
+             {% csrf_token %}
+               
+ <input type="hidden" name="post" value="{{ post.id }}" />
+      
+          <input style=" color: black; background-color:darkgrey;" type="text" name="comment_text" id="comment_text" placeholder="Make a comment.." value="{{ comment_text }}">
                 {{ comment_text }}
-                <input type="submit" class="btn-default btn" value="Comment">
-            </form>
+                
+<input  type="submit" class="btn-default btn" value="Comment">
+  
+          </form>
         </div>
 
-  <div>
-            {% for comment in post.comments %}
-                <p><b>{{ comment.user.username }} [{{ comment.created_on }}]:</b> {{ comment.comment_text }}</p>
+  
+<div>
+   
+         {% for comment in post.comments %}
+              
+  <p><b>{{ comment.user.username }} [{{ comment.created_on }}]:</b> {{ comment.comment_text }}</p>
             {% endfor %}
         </div>
 

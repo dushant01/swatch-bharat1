@@ -17,6 +17,11 @@ from django.http import HttpResponseRedirect
 from django.contrib.auth import logout
 import smtplib
 from constants import constant
+import ctypes
+from clarifai.rest import ClarifaiApp
+from clarifai import rest
+from clarifai.rest import Image as ClImage
+import tkMessageBox
 
 
 from imgurpython import ImgurClient
@@ -27,6 +32,7 @@ client_sec = "296a3fb33f4cfff095f07a8f24f50e930361445c"
 
 # Create your views here.
 def signup_view(request) :
+    
     #Business Logic starts here
 
     if request.method=='GET' :  #IF GET REQUEST IS RECIEVED THEN DISPLAY THE SIGNUP FORM
@@ -60,11 +66,11 @@ def signup_view(request) :
             server.sendmail('dushantk1@gmail.com',email,message)
             #   WOW!!!SUCCESSFULLY SEND EMAIL TO THE USER WHO HAS SIGNUP.USER CAN CHECK INBOX OR SPAM
             # THIS IS ACCURATLY WORKING
+            return redirect('/login/')
         return render(request,'success.html',{'form': form})
 
 #-------------------------------------create a new function for login  user---------------------------------------------------------
 def login_view(request):
-    
     #----------------------------------here is the function logic-----------------------------------------------------------------
     if request.method == 'GET':
         #Display Login Page
@@ -82,7 +88,7 @@ def login_view(request):
             user = User.objects.filter(username=username).first()
             if user:
                 #compare Password
-                if check_password(Password, user.Password):
+                if check_password(password, user.password):
                     token = SessionToken(user = user)
                     token.create_token()
                     token.save()
@@ -104,59 +110,139 @@ def login_view(request):
             template_name = 'login_fail.html'
 
 
-    return render(request,template_name,{'login_form':login_form}
+    return render(request,template_name,{'login_form':login_form})
+
+#-------------------------------------------Create a new function for post --------------------------------------------------------------
+def post_view(request):
+    
+    #-----------------------------------------here is the function logic------------------------------------------------------------
+    user = check_validation(request)
+
+    if user:
+        if request.method == 'POST':
+            form = PostForm(request.POST, request.FILES)
+            if form.is_valid():
+                image = form.cleaned_data.get('image')
+                caption = form.cleaned_data.get('caption')
+                post = PostModel(user=user, image=image, caption=caption)
+                post.save()
+
+                path = str(BASE_DIR+"//"+post.image.url)
+
+                client = ImgurClient(client_id,client_sec)
+                post.image_url = client.upload_from_path(path,anon=True)['link']
+                post.save()
+
+                return redirect('/feed/')
+
+        else:
+            form = PostForm()
+        return render(request, 'posts.html', {'form' : form})
+    else:
+        return redirect('/login/')
+
+#--------------------------------------------Create a new functions to show the all post of user--------------------------------------
 def feed_view(request):
-	user = check_validation(request)
-    	if user:
+    user = check_validation(request)
+    if user:
+        #-------------------------------------here is the functions logic---------------------------------------------------------------
 
-        	posts = PostModel.objects.all().order_by('-created_on')
+        posts = PostModel.objects.all().order_by('-created_on',)
 
-        	for post in posts:
-            		existing_like = LikeModel.objects.filter(post_id=post.id, user=user).first()
-            		if existing_like:
-                		post.has_liked = True
+        for post in posts:
 
-        	return render(request, 'feeds.html', {'posts': posts})
-    	else:
+            existing_like = LikeModel.objects.filter(post_id=post.id, user=user).first()
+            if existing_like:
+                post.has_liked = True
 
-        	return redirect('/login/')
-#For Validation Of the Session In THe SErver
 
-#For validating the session
+        return render(request, 'feeds.html', {'posts': posts})
+    else:
+
+        return redirect('/login/')
+
+
+
+#----------------------------------------------Create a new functions to like the user post-------------------------------------------
+def like_view(request):
+    #-------------------------------------------here is the function logic------------------------------------------------------------
+    user = check_validation(request)
+    if user and request.method == 'POST':
+        form = LikeForm(request.POST)
+        if form.is_valid():
+            post_id = form.cleaned_data.get('post').id
+            existing_like = LikeModel.objects.filter(post_id=post_id, user=user).first()
+            if not existing_like:
+                LikeModel.objects.create(post_id=post_id, user=user)
+            else:
+                existing_like.delete()
+
+            return redirect('/feed/')
+
+    else:
+        return redirect('/login/')
+
+#------------------------------------------------Create a new functions to comment on a user post---------------------------------------
+def comment_view(request):
+    #----------------------------------------------here is the function logic-------------------------------------------------------
+    user = check_validation(request)
+    if user and request.method == 'POST':
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            post_id = form.cleaned_data.get('post').id
+            comment_text = form.cleaned_data.get('comment_text')
+            comment = CommentModel.objects.create(user=user, post_id=post_id, comment_text=comment_text)
+            comment.save()
+            # TODO: ADD MESSAGE TO INDICATE SUCCESS
+            return redirect('/feed/')
+        else:
+            # TODO: ADD MESSAGE FOR FAILING TO POST COMMENT
+            return redirect('/feed/')
+    else:
+        return redirect('/login')
+
+def add_category(post):
+    app = ClarifaiApp(api_key='{cf613fcdc74449948a0a7cfa7fb363bf}')
+
+    # Logo model
+
+    model = app.models.get('general-v1.3')
+    response = model.predict_by_url(url=post.image_url)
+
+    if response["status"]["code"] == 10000:
+        if response["outputs"]:
+            if response["outputs"][0]["data"]:
+                if response["outputs"][0]["data"]["concepts"]:
+                    for index in range(0, len(response["outputs"][0]["data"]["concepts"])):
+                        category = CategoryModel(post=post,
+                                                 category_text=response["outputs"][0]["data"]["concepts"][index][
+                                                     "name"])
+                        category.save()
+                else:
+                    print "No concepts list error."
+            else:
+                print "No data list error."
+        else:
+            print "No output lists error."
+    else:
+	print "Response code error."
+
+
+
+
+
+# -----------------------------------------------Create a functions for validating the session---------------------------------------------
 def check_validation(request):
-	if request.COOKIES.get('session_token'):
-        	session = SessionToken.objects.filter(session_token=request.COOKIES.get('session_token')).first()
-        	if session:
-            		time_to_live = session.created_on + timedelta(days=1)
-            		if time_to_live > timezone.now():
-                		return session.user
-    	else:
-        	return None
-def post_view(request) :
-	user = check_validation(request)
+    #----------------------------------------------here is the function logic----------------------------------------------------------
+    if request.COOKIES.get('session_token'):
+        session = SessionToken.objects.filter(session_token=request.COOKIES.get('session_token')).first()
+        if session:
+            time_to_live = session.created_on + timedelta(days=1)
+            if time_to_live > timezone.now():
+                return session.user
+    else:
+        return None
 
-    	if user :
-        	if request.method == 'POST' :
-            		form = PostForm(request.POST, request.FILES)
-            		if form.is_valid() :
-                	image = form.cleaned_data.get('image')
-                	caption = form.cleaned_data.get('caption')
-                	post = PostModel(user=user, image=image, caption=caption)
-                	post.save()
-
-                	path = str(BASE_DIR +"//"+ post.image.url)
-
-                	client = ImgurClient(client_id,client_sec)
-                	post.image_url = client.upload_from_path(path, anon=True)['link']
-                	post.save()
-
-
-                	return redirect('/feed/')
-
-        	else :
-            		form = PostForm()
-        	return render(request, 'posts.html', {'form' : form})
-
-   	 else :
-        	return redirect('/login/')
+def logout_page(request):
+	logout(request)
 
